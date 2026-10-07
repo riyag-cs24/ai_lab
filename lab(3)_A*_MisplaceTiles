@@ -1,0 +1,192 @@
+import heapq
+
+
+# Print the puzzle
+def print_puzzle(state):
+    for i in range(0, 9, 3):
+        print(" ".join("_" if x == 0 else str(x) for x in state[i:i+3]))
+    print()
+
+
+# Heuristic: Number of misplaced tiles
+def misplaced_tiles(state, goal):
+    count = 0
+
+    for i in range(9):
+        # Don't count the blank space
+        if state[i] != 0 and state[i] != goal[i]:
+            count += 1
+
+    return count
+
+
+# Generate possible moves
+def get_neighbors(state):
+
+    neighbors = []
+
+    blank = state.index(0)
+
+    row = blank // 3
+    col = blank % 3
+
+    # Up
+    if row > 0:
+        new_state = list(state)
+        new_state[blank], new_state[blank - 3] = \
+            new_state[blank - 3], new_state[blank]
+        neighbors.append(tuple(new_state))
+
+    # Down
+    if row < 2:
+        new_state = list(state)
+        new_state[blank], new_state[blank + 3] = \
+            new_state[blank + 3], new_state[blank]
+        neighbors.append(tuple(new_state))
+
+    # Left
+    if col > 0:
+        new_state = list(state)
+        new_state[blank], new_state[blank - 1] = \
+            new_state[blank - 1], new_state[blank]
+        neighbors.append(tuple(new_state))
+
+    # Right
+    if col < 2:
+        new_state = list(state)
+        new_state[blank], new_state[blank + 1] = \
+            new_state[blank + 1], new_state[blank]
+        neighbors.append(tuple(new_state))
+
+    return neighbors
+
+
+# A* Search
+def a_star(initial, goal):
+
+    # Priority queue
+    # (f, g, state)
+    open_list = []
+
+    h = misplaced_tiles(initial, goal)
+
+    heapq.heappush(open_list, (h, 0, initial))
+
+    # Cost from initial state
+    g_cost = {initial: 0}
+
+    # Parent dictionary
+    parent = {initial: None}
+
+    visited = set()
+
+    while open_list:
+
+        f, g, current = heapq.heappop(open_list)
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        # Goal reached
+        if current == goal:
+
+            path = []
+
+            while current is not None:
+                path.append(current)
+                current = parent[current]
+
+            path.reverse()
+
+            return path
+
+        # Generate next states
+        for neighbor in get_neighbors(current):
+
+            new_g = g + 1
+
+            if neighbor not in g_cost or new_g < g_cost[neighbor]:
+
+                g_cost[neighbor] = new_g
+
+                h = misplaced_tiles(neighbor, goal)
+
+                f = new_g + h
+
+                parent[neighbor] = current
+
+                heapq.heappush(
+                    open_list,
+                    (f, new_g, neighbor)
+                )
+
+    return None
+
+
+# --------------------------------------------------
+# MAIN PROGRAM
+# --------------------------------------------------
+
+print("====================================")
+print("  8-PUZZLE A* SEARCH")
+print("  HEURISTIC: MISPLACED TILES")
+print("====================================")
+
+print("\nUse 0 for the blank space.")
+print("Example: 2 8 3 1 6 4 7 0 5")
+
+# Input initial state
+initial = tuple(
+    map(int, input("\nEnter initial state: ").split())
+)
+
+# Input goal state
+goal = tuple(
+    map(int, input("Enter goal state: ").split())
+)
+
+# Validate input
+if len(initial) != 9 or len(goal) != 9:
+    print("Error: Enter exactly 9 numbers.")
+    exit()
+
+if set(initial) != set(range(9)) or set(goal) != set(range(9)):
+    print("Error: Use numbers 0 to 8 exactly once.")
+    exit()
+
+
+print("\nSearching...")
+print("Heuristic = Number of Misplaced Tiles")
+print("f(n) = g(n) + h(n)\n")
+
+
+solution = a_star(initial, goal)
+
+
+# Display solution
+if solution is None:
+
+    print("No solution found.")
+
+else:
+
+    print("========== SOLUTION ==========")
+    print("Number of moves:", len(solution) - 1)
+    print()
+
+    for step, state in enumerate(solution):
+
+        g = step
+        h = misplaced_tiles(state, goal)
+        f = g + h
+
+        print("Step:", step)
+        print("g(n) =", g)
+        print("h(n) =", h)
+        print("f(n) =", f)
+
+        print_puzzle(state)
+
+    print("========== GOAL REACHED ==========")
